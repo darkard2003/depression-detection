@@ -1,0 +1,80 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.venv
+venv/
+ENV/
+env/
+.virtualenv
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# ML Models and Training Artifacts
+models/*.keras
+models/*.h5
+models/*.pt
+models/*.pth
+models/*.ckpt
+models/*.joblib
+models/*.pkl
+models/*.pickle
+*.keras
+*.h5
+*.joblib
+
+# Keras Tuner / Hyperparameter Search
+keras_mlp/
+keras_tuner/
+hyperparameter_search/
+
+# Large Data Files
+*.npz
+*.npy
+*.csv
+*.tsv
+*.json
+*.pkl
+*.pickle
+processed/
+data/
+datasets/
+
+# TensorFlow / PyTorch
+*.pb
+*.pbtxt
+*.onnx
+checkpoints/
+logs/
+tensorboard_logs/
+runs/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS-specific
+Thumbs.db
+desktop.ini
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.out
+*.err
