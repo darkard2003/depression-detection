@@ -71,9 +71,9 @@ def get_nrc_features(text, scaler):
 
 @app.on_event("startup")
 def startup_event():
-    print("=========================================================")
+    print("="*30)
     print("Loading Preprocessors and Model...")
-    print("=========================================================")
+    print("="*30)
     
     # Get current directory path
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -114,9 +114,9 @@ def startup_event():
         thresholds["tfidf"] = 0.5
         print("✓ Decision Threshold defaulted to 0.500")
         
-    print("=========================================================")
-    print("🎉 Startup complete! Single-model API is ready.")
-    print("=========================================================")
+    print("="*30)
+    print("Startup complete! Single-model API is ready.")
+    print("="*30)
 
 class PredictionRequest(BaseModel):
     text: str
