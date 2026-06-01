@@ -1,0 +1,56 @@
+================================================================================
+                    DEPRESSION DETECTION MODEL TEST CASES
+================================================================================
+
+This file contains pre-packaged, diverse test cases representing different 
+psychological states to validate your Keras models and FastAPI endpoints.
+You can copy and paste these into your API tester, test_api.py, or Postman.
+
+--------------------------------------------------------------------------------
+1. SEVERE DEPRESSION (Expected Label: Depression, Prob > 0.52)
+--------------------------------------------------------------------------------
+Text 1:
+I just feel so tired all the time. I do not want to get out of bed. Nothing brings me joy anymore and I feel completely empty inside.
+
+Text 2:
+I want to die. I cannot go on anymore. Everything is painful and I have no hope left.
+
+Text 3:
+I feel so worthless and hollow. I do not see any reason to keep trying. Everything is just completely hopeless.
+
+Text 4:
+It is hard to describe the feeling. It is like being underwater while everyone else is breathing normally. I just want to escape this pain.
+
+--------------------------------------------------------------------------------
+2. MILD / BORDERLINE DEPRESSION (Expected Label: Control or Mild Depression, Prob: 0.35 - 0.55)
+--------------------------------------------------------------------------------
+Text 1:
+Lately I have just been feeling a bit down and unmotivated. I don't feel like doing my usual hobbies, but I'm still getting through my day.
+
+Text 2:
+I've been feeling pretty blue lately. I find myself staying in my room a lot, and keeping up with work has become really hard.
+
+Text 3:
+Lately, I feel like crying for no reason. I have completely lost interest in seeing my friends, and I feel so sad and lonely.
+
+--------------------------------------------------------------------------------
+3. HEALTHY CONTROL (Expected Label: Control, Prob < 0.20)
+--------------------------------------------------------------------------------
+Text 1:
+Had a wonderful day at the park today! The weather was perfect and the dogs loved running around. Feeling very grateful.
+
+Text 2:
+Had a great workout today and then walked the dog. The weather was beautiful.
+
+Text 3:
+Just finished baking a chocolate cake for my friend's birthday. I hope they like it! It smells amazing in here.
+
+--------------------------------------------------------------------------------
+4. STRESSED / ANXIOUS BUT NORMAL (Expected Label: Control, Prob: 0.20 - 0.40)
+--------------------------------------------------------------------------------
+Text 1:
+Studying for my exams next week. Feeling a bit stressed, but I think I am prepared. Just going to keep working hard.
+
+Text 2:
+Work is so busy this week. I have three major deadlines coming up and my inbox is overflowing, but I will get through it.
+================================================================================

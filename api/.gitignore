@@ -1,0 +1,12 @@
+# Ignore local virtual environment
+.venv/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore local testing/system files
+.pytest_cache/
+.DS_Store

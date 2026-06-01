@@ -78,3 +78,7 @@ desktop.ini
 *.temp
 *.out
 *.err
+
+# Antigravity and Agent CLI
+.agents/
+.antigravitycli/
