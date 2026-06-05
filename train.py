@@ -25,7 +25,7 @@ from sklearn.metrics import f1_score
 MODE = 'bert'  # Options: 'bert' or 'tfidf'
 
 # Paths and Filenames
-DATA_DIR = 'processed_bert'  # 'processed_bert' or 'processed_dirty'
+DATA_DIR = 'data_processed/processed_bert'  # 'data_processed/processed_bert' or 'data_processed/processed_dirty'
 X_FILE = 'X_combined.npy'    # 'X_combined.npy' or 'X_combined_sparse.npz'
 Y_FILE = 'y.npy'             # 'y.npy'
 

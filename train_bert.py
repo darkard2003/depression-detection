@@ -22,11 +22,18 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc, precision_recall_curve, average_precision_score
 
+import argparse
+
 # ==============================================================================
-# GLOBAL CONFIGURATION - EDIT MANUALLY
+# GLOBAL CONFIGURATION & ARGUMENT PARSING
 # ==============================================================================
-# Paths and Filenames
-DATA_DIR = 'processed_bert'
+parser = argparse.ArgumentParser(description="Train BERT MLP model.")
+parser.add_argument("--data_dir", type=str, default="data_processed/processed_bert", help="Data directory containing features and labels.")
+parser.add_argument("--project_name", type=str, default="reddit_mlp_bert_nrclex_v5_smote", help="Project and model name.")
+args = parser.parse_args()
+
+DATA_DIR = args.data_dir
+PROJECT_NAME = args.project_name
 X_FILE = 'X_combined.npy'
 Y_FILE = 'y.npy'
 
@@ -39,9 +46,6 @@ OVERWRITE_TUNER = False       # False to resume crashed runs, True to start fres
 FIT_EPOCHS = 200              # Max epochs for training the best model
 BATCH_SIZE = 512              # Mini-batch size
 SEED = 42                     # Random state seed
-
-# Project/Model naming to match combined_tensor_bert_v5.ipynb
-PROJECT_NAME = "reddit_mlp_bert_nrclex_v5_smote"
 # ==============================================================================
 
 
@@ -51,7 +55,7 @@ PROJECT_NAME = "reddit_mlp_bert_nrclex_v5_smote"
 os.makedirs('logs', exist_ok=True)
 os.makedirs('models', exist_ok=True)
 
-log_filename = "logs/train_bert.log"
+log_filename = f"logs/train_bert_{PROJECT_NAME}.log"
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
