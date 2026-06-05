@@ -1,4 +1,8 @@
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+import os
 import re
 import json
 import pickle
@@ -11,9 +15,9 @@ from nrclex import NRCLex
 # ==============================================================================
 # GLOBAL CONFIGURATIONS - EDIT TO CHOOSE MODEL & PATH DIRECTLY
 # ==============================================================================
-MODEL_PATH = "api/models/reddit_mlp_hyperband_v3.keras"  # Direct path to Keras model (.keras)
+MODEL_PATH = "outputs/tfidf_mlp/reddit_mlp_hyperband_v3.keras"  # Direct path to Keras model (.keras)
 MODEL_TYPE = "tfidf"                                      # Type of model: "tfidf" or "bert"
-PREPROCESSORS_DIR = "api/preprocessors"                   # Folder containing tfidf_vectorizer.pkl and nrc_scaler.pkl
+PREPROCESSORS_DIR = "outputs/bert_mlp"                   # Folder containing tfidf_vectorizer.pkl and nrc_scaler.pkl
 # ==============================================================================
 
 # Preprocessing helpers

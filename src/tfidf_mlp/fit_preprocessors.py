@@ -1,4 +1,8 @@
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+import os
 import re
 import sys
 import pickle
@@ -6,7 +10,6 @@ import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MinMaxScaler
-import emoji
 from nrclex import NRCLex
 from multiprocessing import Pool
 
@@ -14,35 +17,11 @@ from multiprocessing import Pool
 # GLOBAL CONFIGURATION
 # ==============================================================================
 CSV_FILE = "datasets/bin_reddit1.csv"
-SAVE_DIR = "preprocessors"
+SAVE_DIR = "outputs/tfidf_mlp"
 # ==============================================================================
 
 # Preprocessing helpers
-def process_hashtags(text):
-    if not isinstance(text, str):
-        return ""
-    hashtags = re.findall(r'#(\w+)', text)
-    for hashtag in hashtags:
-        processed = hashtag
-        processed = processed.replace('_', ' ')
-        processed = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', processed)
-        processed = re.sub(r'(?<=[A-Z])(?=[A-Z][a-z])', ' ', processed)
-        processed = re.sub(r'(?<=[a-zA-Z])(?=\d)', ' ', processed)
-        processed = re.sub(r'(?<=\d)(?=[a-zA-Z])', ' ', processed)
-        processed = ' '.join(processed.lower().split())
-        text = text.replace(f'#{hashtag}', processed)
-    return text
-
-def clean_text_for_tfidf(text):
-    if not isinstance(text, str):
-        return ""
-    text = re.sub(r'http\S+|www\S+', '', text)
-    text = re.sub(r'@\S+', '', text)
-    text = text.lower()
-    text = re.sub(r'\d+', '', text)
-    text = emoji.demojize(text, delimiters=(" ", " "))
-    text = process_hashtags(text)
-    return text
+from src.utils.text_cleaning import clean_text_for_tfidf
 
 # Parallel NRC Emotion Feature Extraction Helper
 def extract_single_nrc(text):

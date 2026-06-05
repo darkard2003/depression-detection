@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 import os
 import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+import os
+import sys
 import json
 import logging
 import numpy as np
@@ -50,7 +54,7 @@ PROJECT_NAME = f"reddit_mlp_{MODE}_bs_{BATCH_SIZE}_seed_{SEED}"
 # Create directories if they don't exist
 os.makedirs('logs', exist_ok=True)
 os.makedirs('plots', exist_ok=True)
-os.makedirs('models', exist_ok=True)
+os.makedirs('outputs/bert_mlp', exist_ok=True)
 
 # Configure logging to print to both stdout and a file
 log_filename = f"logs/train_{MODE}.log"
@@ -405,7 +409,7 @@ final_model.fit(
 # 9. SAVE MODEL & METADATA EXPORT
 # ------------------------------------------------------------------------------
 logger.info("Saving trained final model...")
-model_path = path.join('models', f'{PROJECT_NAME}.keras')
+model_path = path.join('outputs/bert_mlp', f'{PROJECT_NAME}.keras')
 final_model.save(model_path)
 logger.info(f"Final model successfully saved to: {model_path}")
 
@@ -420,7 +424,7 @@ metadata = {
     "history": {k: [float(x) for x in v] for k, v in history.history.items()}
 }
 
-metadata_path = path.join('models', f'{PROJECT_NAME}_metadata.json')
+metadata_path = path.join('outputs/bert_mlp', f'{PROJECT_NAME}_metadata.json')
 with open(metadata_path, 'w', encoding='utf-8') as f:
     json.dump(metadata, f, indent=4)
 logger.info(f"Training metadata successfully exported to: {metadata_path}")

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+import os
 import pickle
 import numpy as np
 from scipy.sparse import load_npz, save_npz, hstack
@@ -8,7 +12,7 @@ from sklearn.feature_selection import SelectKBest, chi2
 # Configuration
 DATA_DIR = 'data_processed/processed_dirty'
 SAVE_DIR = 'data_processed/processed_chi2'
-PREPROCESSORS_DIR = 'preprocessors'
+PREPROCESSORS_DIR = 'outputs/tfidf_mlp'
 K_FEATURES = 1000
 
 def main():

@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 import os
 import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+import os
+import sys
 import numpy as np
 import pandas as pd
 from sklearn.metrics import classification_report, accuracy_score, f1_score

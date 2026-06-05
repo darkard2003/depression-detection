@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 import os
 import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+import os
+import sys
 import argparse
 import logging
 import numpy as np
@@ -45,7 +49,7 @@ SEED = 42
 
 # 1. SETUP LOGGING
 os.makedirs('logs', exist_ok=True)
-os.makedirs('models', exist_ok=True)
+os.makedirs('outputs/distilled_tfidf', exist_ok=True)
 
 log_filename = f"logs/train_tfidf_{PROJECT_NAME}.log"
 logging.basicConfig(
@@ -163,7 +167,7 @@ def main():
         objective=kt.Objective("val_loss", direction="min"),
         max_epochs=MAX_EPOCHS,
         factor=3,
-        directory='models',
+        directory='outputs/distilled_tfidf',
         project_name=PROJECT_NAME,
         overwrite=OVERWRITE_TUNER
     )
@@ -215,7 +219,7 @@ def main():
     print(classification_report(y_test, y_pred))
 
     # Save best student model
-    model_save_path = f"models/{PROJECT_NAME}_best.keras"
+    model_save_path = f"outputs/distilled_tfidf/{PROJECT_NAME}_best.keras"
     best_model.save(model_save_path)
     logger.info(f"✓ Best student model saved to '{model_save_path}'")
     logger.info("=" * 60)

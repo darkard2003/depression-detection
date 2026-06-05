@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+import os
 import re
 import sys
 import pickle
 import torch
-import emoji
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -14,38 +17,14 @@ from sklearn.metrics import classification_report, accuracy_score, f1_score
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 CSV_FILE = "datasets/bin_reddit1.csv"
-STUDENT_MODEL_PATH = "models/reddit_mlp_distilled_best.keras"
+STUDENT_MODEL_PATH = "outputs/distilled_tfidf/reddit_mlp_distilled_best.keras"
 TEACHER_MODEL_NAME = "TRT1000/depression-detection-model"
-VECTORIZER_PATH = "preprocessors/tfidf_vectorizer.pkl"
-INDICES_PATH = "preprocessors/selected_tfidf_indices.npy"
+VECTORIZER_PATH = "outputs/tfidf_mlp/tfidf_vectorizer.pkl"
+INDICES_PATH = "outputs/tfidf_mlp/selected_tfidf_indices.npy"
 BATCH_SIZE = 64
 
 # Cleaning functions
-def process_hashtags(text):
-    if not isinstance(text, str):
-        return ""
-    hashtags = re.findall(r'#(\w+)', text)
-    for hashtag in hashtags:
-        processed = hashtag
-        processed = processed.replace('_', ' ')
-        processed = re.sub(r'(?<=[a-z])(?=[A-Z])', ' ', processed)
-        processed = re.sub(r'(?<=[A-Z])(?=[A-Z][a-z])', ' ', processed)
-        processed = re.sub(r'(?<=[a-zA-Z])(?=\d)', ' ', processed)
-        processed = re.sub(r'(?<=\d)(?=[a-zA-Z])', ' ', processed)
-        processed = ' '.join(processed.lower().split())
-        text = text.replace(f'#{hashtag}', processed)
-    return text
-
-def clean_text_for_tfidf(text):
-    if not isinstance(text, str):
-        return ""
-    text = re.sub(r'http\S+|www\S+', '', text)
-    text = re.sub(r'@\S+', '', text)
-    text = text.lower()
-    text = re.sub(r'\d+', '', text)
-    text = emoji.demojize(text, delimiters=(" ", " "))
-    text = process_hashtags(text)
-    return text
+from src.utils.text_cleaning import clean_text_for_tfidf
 
 def main():
     print("=" * 60)
