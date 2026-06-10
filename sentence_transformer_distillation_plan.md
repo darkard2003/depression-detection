@@ -34,31 +34,31 @@ Rather than training the student MLP on 5,000 sparse TF-IDF word counts, we will
 ## 2. Pipeline Execution Steps
 
 ### Phase 1: Feature Extraction
-We will pre-compute and cache the sentence embeddings for the training dataset (`thepixel42_depression-detection.csv`) to speed up model training and hyperparameter search.
+We will pre-compute and cache the sentence embeddings for the training dataset (`datasets/thepixel42_depression-detection.csv`) to speed up model training and hyperparameter search.
 
-* **Script:** `generate_embeddings.py`
+* **Script:** `src/distilled_embeddings/generate_embeddings.py`
 * **Task:**
   1. Load the dataset.
   2. Batch-encode the clean texts using `all-MiniLM-L6-v2`.
-  3. Save the resulting embeddings array as `processed_embeddings/X_embeddings.npy`.
-  4. Save the corresponding labels and teacher soft targets (`y.npy` and `y_teacher_soft.npy`).
+  3. Save the resulting embeddings array as `data_processed/processed_embeddings/X_embeddings.npy`.
+  4. Save the corresponding labels and teacher soft targets (`data_processed/processed_embeddings/y.npy` and `data_processed/processed_embeddings/y_teacher_soft.npy`).
 
 ### Phase 2: Hyperparameter Tuning & Training
 Using the pre-computed embeddings, we will run a Hyperband search to optimize the architecture of the student classifier.
 
-* **Script:** `train_distilled_embeddings.py`
+* **Script:** `src/distilled_embeddings/train_distilled_embeddings.py`
 * **Task:**
-  1. Load `X_embeddings.npy`, `y.npy`, and `y_teacher_soft.npy`.
+  1. Load `X_embeddings.npy`, `y.npy`, and `y_teacher_soft.npy` from `data_processed/processed_embeddings/`.
   2. Split into Train/Val/Test (stratified).
   3. Run `keras-tuner` to optimize the hidden layers, units, and dropout rates of the MLP.
   4. Train on the blended distillation target:
      $$y_{\text{distill}} = \alpha \cdot y_{\text{true}} + (1 - \alpha) \cdot y_{\text{teacher}}$$
-  5. Save the best model to `models/reddit_mlp_distilled_embeddings_best.keras`.
+  5. Save the best model to `outputs/distilled_embeddings/reddit_mlp_distilled_embeddings_best.keras`.
 
 ### Phase 3: Fidelity Evaluation
-We will measure how closely the new embedding-based student matches the teacher on the evaluation dataset (`bin_reddit1.csv`).
+We will measure how closely the new embedding-based student matches the teacher on the evaluation dataset (`datasets/bin_reddit1.csv`).
 
-* **Script:** `compare_predictions_embeddings.py`
+* **Script:** `src/distilled_embeddings/compare_predictions_embeddings.py`
 * **Task:**
   1. Load the evaluation dataset.
   2. Generate teacher predictions.

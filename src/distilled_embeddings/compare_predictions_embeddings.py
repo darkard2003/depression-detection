@@ -1,71 +1,58 @@
 #!/usr/bin/env python3
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
-import os
-import re
-import sys
-import pickle
 import torch
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 from tqdm import tqdm
-from scipy.sparse import csr_matrix
+from transformers import AutoTokenizer, AutoModel, AutoModelForSequenceClassification
 from sklearn.metrics import classification_report, accuracy_score, f1_score
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 CSV_FILE = "datasets/bin_reddit1.csv"
-STUDENT_MODEL_PATH = "outputs/distilled_tfidf/reddit_mlp_distilled/best_model.keras"
+STUDENT_MODEL_PATH = "outputs/distilled_embeddings/reddit_mlp_distilled_embeddings/best_model.keras"
 TEACHER_MODEL_NAME = "TRT1000/depression-detection-model"
-VECTORIZER_PATH = "outputs/tfidf_mlp/tfidf_vectorizer.pkl"
-INDICES_PATH = "outputs/tfidf_mlp/selected_tfidf_indices.npy"
 BATCH_SIZE = 64
 
-# Cleaning functions
-from src.utils.text_cleaning import clean_text_for_tfidf
+def mean_pooling(model_output, attention_mask):
+    token_embeddings = model_output[0]
+    input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+    return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 
 def main():
     print("=" * 60)
-    print("Evaluating Student Model Fidelity to Teacher on Dataset")
+    print("Evaluating Embedding Student Model Fidelity to Teacher")
     print("=" * 60)
     
     if not os.path.exists(CSV_FILE):
         print(f"Error: {CSV_FILE} not found!")
         sys.exit(1)
         
-    # 1. Device selection for Teacher
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-        print("Using CUDA GPU for Teacher")
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
-        print("Using Apple Silicon GPU (MPS) for Teacher")
-    else:
-        device = torch.device("cpu")
-        print("Using CPU for Teacher")
+    if not os.path.exists(STUDENT_MODEL_PATH):
+        print(f"Error: Student model {STUDENT_MODEL_PATH} not found. Please train it first.")
+        sys.exit(1)
 
-    # 2. Load dataset
-    print(f"Loading dataset {CSV_FILE}...")
+    device = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
+    print(f"Using device: {device}")
+
+    # Load dataset
+    print(f"Loading dataset: {CSV_FILE}...")
     df = pd.read_csv(CSV_FILE)
-    raw_texts = df['text'].fillna("").astype(str).tolist()
-    total_samples = len(raw_texts)
+    texts = df['text'].fillna("").astype(str).tolist()
+    total_samples = len(texts)
 
-    # 3. Generate Teacher predictions
+    # 1. Generate Teacher predictions
     print(f"\n[1/3] Loading Teacher model: {TEACHER_MODEL_NAME}...")
     tokenizer = AutoTokenizer.from_pretrained(TEACHER_MODEL_NAME)
-    teacher_model = AutoModelForSequenceClassification.from_pretrained(TEACHER_MODEL_NAME)
-    teacher_model.to(device)
+    teacher_model = AutoModelForSequenceClassification.from_pretrained(TEACHER_MODEL_NAME).to(device)
     teacher_model.eval()
     
     y_teacher_probs = []
     print("Running batch inference for Teacher...")
     with torch.no_grad():
         for i in tqdm(range(0, total_samples, BATCH_SIZE), desc="Teacher Inference"):
-            batch_texts = raw_texts[i : i + BATCH_SIZE]
-            inputs = tokenizer(batch_texts, padding=True, truncation=True, max_length=256, return_tensors="pt")
-            inputs = {k: v.to(device) for k, v in inputs.items()}
+            batch = texts[i : i + BATCH_SIZE]
+            inputs = tokenizer(batch, padding=True, truncation=True, max_length=256, return_tensors="pt").to(device)
             outputs = teacher_model(**inputs)
             logits = outputs.logits
             if logits.shape[1] == 2:
@@ -77,34 +64,31 @@ def main():
     y_teacher_probs = np.array(y_teacher_probs)
     y_teacher_pred = (y_teacher_probs >= 0.5).astype(int)
 
-    # 4. Generate Student predictions
-    print(f"\n[2/3] Processing text for Student model...")
-    df['text_clean'] = df['text'].fillna("").apply(clean_text_for_tfidf)
-    
-    print("Loading vectorizer and indices...")
-    with open(VECTORIZER_PATH, 'rb') as f:
-        vectorizer = pickle.load(f)
-    selected_indices = np.load(INDICES_PATH)
-    
-    print("Vectorizing text...")
-    X_tfidf = vectorizer.transform(df['text_clean'].tolist())
-    X_student = X_tfidf[:, selected_indices]
-    
+    # 2. Student embeddings & inference
+    print(f"\n[2/3] Loading MiniLM model for Student embeddings...")
+    embed_tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
+    embed_model = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2').to(device)
+    embed_model.eval()
+
+    embeddings = []
+    print("Generating Student embeddings...")
+    with torch.no_grad():
+        for i in tqdm(range(0, total_samples, BATCH_SIZE), desc="Student Embedding"):
+            batch = texts[i : i + BATCH_SIZE]
+            inputs = embed_tokenizer(batch, padding=True, truncation=True, max_length=256, return_tensors="pt").to(device)
+            outputs = embed_model(**inputs)
+            pooled = mean_pooling(outputs, inputs['attention_mask'])
+            embeddings.append(pooled.cpu().numpy())
+    X_embeddings = np.vstack(embeddings)
+
     print(f"Loading Student model: {STUDENT_MODEL_PATH}...")
     student_model = tf.keras.models.load_model(STUDENT_MODEL_PATH)
     
     print("Running Student predictions...")
-    y_student_probs = []
-    # Predict in batches to avoid RAM crashes
-    for i in tqdm(range(0, total_samples, BATCH_SIZE), desc="Student Inference"):
-        batch_x = X_student[i : i + BATCH_SIZE].toarray()
-        probs = student_model.predict(batch_x, verbose=0).flatten()
-        y_student_probs.extend(probs)
-        
-    y_student_probs = np.array(y_student_probs)
+    y_student_probs = student_model.predict(X_embeddings, batch_size=128).flatten()
     y_student_pred = (y_student_probs >= 0.5).astype(int)
 
-    # 5. Evaluate Fidelity (Student vs Teacher)
+    # 3. Evaluate Fidelity (Student vs Teacher)
     print(f"\n[3/3] Evaluating Student Fidelity to Teacher...")
     accuracy = accuracy_score(y_teacher_pred, y_student_pred)
     f1 = f1_score(y_teacher_pred, y_student_pred)
@@ -119,7 +103,7 @@ def main():
     print(classification_report(y_teacher_pred, y_student_pred))
     print("=" * 60)
     
-    # 6. Extract Disagreements
+    # 4. Extract Disagreements
     disagreements_mask = y_teacher_pred != y_student_pred
     disagreements_idx = np.where(disagreements_mask)[0]
     

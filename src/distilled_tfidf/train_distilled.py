@@ -219,7 +219,8 @@ def main():
     print(classification_report(y_test, y_pred))
 
     # Save best student model
-    model_save_path = f"outputs/distilled_tfidf/{PROJECT_NAME}_best.keras"
+    os.makedirs(f"outputs/distilled_tfidf/{PROJECT_NAME}", exist_ok=True)
+    model_save_path = f"outputs/distilled_tfidf/{PROJECT_NAME}/best_model.keras"
     best_model.save(model_save_path)
     logger.info(f"✓ Best student model saved to '{model_save_path}'")
     logger.info("=" * 60)
