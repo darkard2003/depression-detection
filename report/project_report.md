@@ -138,6 +138,48 @@ Inference speed was benchmarked on a single-core CPU:
 
 ---
 
+### 6.4 Model Evaluation Curves
+
+To visualize the learning behavior and classification performance of our student models, we generate learning curves (Loss and MAE), ROC/Precision-Recall curves, and confusion matrices.
+
+#### 6.4.1 Distilled Lite (Variant B)
+
+* **Learning Curves:** Loss & Mean Absolute Error (MAE) over 100 training epochs.
+![Distilled Lite Learning Curves](./learning_curve_lite.png)
+
+* **ROC & Precision-Recall Curves:** Model performance evaluated against hard targets on the test set.
+![Distilled Lite ROC & PR Curves](./roc_pr_lite.png)
+
+* **Confusion Matrix:** True vs. predicted labels on the 38,368 sample test set.
+![Distilled Lite Confusion Matrix](./confusion_matrix_lite.png)
+
+* **SHAP Feature Importance:** Global feature contributions computed via SHAP (top 20 features).
+![Distilled Lite SHAP Feature Importance](./xai_shap_lite.png)
+
+#### 6.4.2 Gated Hybrid (Variant B)
+
+* **Learning Curves:** Loss & Mean Absolute Error (MAE) over 100 training epochs.
+![Gated Hybrid Learning Curves](./learning_curve_gated.png)
+
+* **ROC & Precision-Recall Curves:** Model performance evaluated against hard targets on the test set.
+![Gated Hybrid ROC & PR Curves](./roc_pr_gated.png)
+
+* **Confusion Matrix:** True vs. predicted labels on the 38,368 sample test set.
+![Gated Hybrid Confusion Matrix](./confusion_matrix_gated.png)
+
+* **SHAP Feature Importance:** Global feature contributions computed via SHAP (top 20 features).
+![Gated Hybrid SHAP Feature Importance](./xai_shap_gated.png)
+
+---
+
+### 6.5 SHAP Explainability Insights
+
+Using post-hoc SHAP analysis, we evaluated the decision boundaries of our distilled student models:
+* **Distilled Lite (Variant B):** The model relies heavily on the engineered `crisis_flag` (SHAP value: 0.106) to flag acute distress, followed by the keyword `"depression"` and the NRCLex `trust` metric. Crucially, the clinical marker `sing_ratio` (first-person singular pronoun density) ranks as the 4th most important feature, validating that self-referential language is a key diagnostic anchor.
+* **Gated Hybrid (Variant B):** Beyond the keyword `"depression"` (which is the top feature), the model's decision framework is dominated by SBERT dense dimensions rather than specific lexical tokens. This confirms that the model's gating branch successfully prioritizes semantic sentence context over isolated words, explaining its robust generalization across clean and domain-shifted text splits.
+
+---
+
 ## 7. Discussion: The Overfitting and Generalization Trade-Offs
 
 ### 7.1 Transformer Fine-Tuning Domain Collapse
