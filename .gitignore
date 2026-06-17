@@ -38,6 +38,7 @@ models/*.pickle
 keras_mlp/
 keras_tuner/
 hyperparameter_search/
+outputs/
 
 # Large Data Files
 *.npz
