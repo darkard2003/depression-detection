@@ -118,7 +118,7 @@ Designed for maximum accuracy, this Keras model merges dense semantics and spars
   * **SBERT Branch:** Projects SBERT inputs `384 -> 128`.
   * **TF-IDF Branch:** Projects TF-IDF inputs `1000 -> 256`.
   * **Gating Node:** Concatenates both branches and calculates a gating weight $g \in (0, 1)$ via Sigmoid.
-  * **Weighted Fusion:** Projects both branches to a common dimension of 64 and combines them: $\text{fused} = g \cdot \text{proj}_{\text{sbert}} + (1 - g) \cdot \text{proj}_{\text{tfidf}}$.
+  * **Weighted Fusion:** Projects both branches to a common dimension of 64 and combines them: `fused = g * proj_sbert + (1 - g) * proj_tfidf`.
   * **Output Classifier:** Fused vector (64) $\rightarrow$ `Dense(1, Sigmoid)`.
 
 ```mermaid
