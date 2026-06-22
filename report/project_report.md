@@ -77,16 +77,59 @@ Designed for maximum accuracy, this Keras model merges dense semantics and spars
 
 ---
 
-## 5. Experimental Setup & Optimization
+## 5. System Design
+
+This section outlines the systemic design of our model training, feature extraction, and knowledge distillation pipeline. The architecture is engineered to transform raw input corpora into optimized classification models through a modular, reproducible workflow.
+
+### 5.1 Training & Feature Pipeline Dataflow
+The end-to-end training and evaluation system is structured as a feed-forward pipeline with distinct stages for dataset synthesis, offline feature extraction, distillation, and student optimization:
+
+```mermaid
+graph TD
+    A[Raw Social Media Corpora] --> B[Data Synthesis & Text Cleaning]
+    B --> C[Stratified Train/Test Split]
+    C --> D[Feature Extraction Engines]
+    D --> E[TF-IDF Vectorizer]
+    D --> F[NRCLex Scaler]
+    D --> G[Frozen SBERT Embeddings]
+    C --> H[Teacher Inference]
+    H --> I[Soft Probability Targets]
+    E --> J[Student Training Loop]
+    F --> J
+    G --> J
+    I --> J
+    J --> K[Serialized Model Assets & Metadata]
+```
+
+### 5.2 Offline Feature Generation Pipeline
+To eliminate training bottlenecks (such as on-the-fly SBERT tokenization during backpropagation), feature generation is decoupled from the main training loop:
+1. **Lexical and Stylistic Features:** Raw text is mapped to a sparse 5,000-dimension TF-IDF vector space, and 22 hand-crafted features (sentiments, tenses, pronouns) are computed. A standard scaler is fit on the training portion to normalize emotional intensities.
+2. **Dense Semantic Embeddings:** The text is passed through a frozen `all-MiniLM-L6-v2` transformer to generate 384-dimensional dense vectors.
+3. **Preprocessing Serialization:** To guarantee complete alignment between the training distribution and any subsequent inference, the exact parameters of the TF-IDF vectorizer (`tfidf_vectorizer.pkl`) and emotional feature scaler (`nrc_scaler.pkl`) are serialized and saved.
+
+### 5.3 Knowledge Distillation System
+The training workflow utilizes a teacher-guided optimization framework:
+1. **Teacher Inference:** The fine-tuned transformer teacher runs inference on the training dataset to produce continuous soft probabilities $y_{\text{soft}} \in [0, 1]$.
+2. **Target Alignment:** The student models are trained using these soft labels rather than discrete ground-truth labels. This allows the students to optimize for the teacher's nuanced decision boundaries and uncertainty states.
+3. **Loss Minimization:** The optimization objectives for the students minimize the discrepancy (using Binary Cross-Entropy) between the student outputs and the soft targets.
+
+### 5.4 Dual-Student Model Selection Strategy
+The system is designed with a dual-model architecture to support different production priorities:
+* **The High-Speed Lexical Pipeline (Distilled Lite):** Uses a feature selection step (`SelectKBest` with Chi-Square) to reduce the 5,022 raw inputs down to the 2,000 most predictive features, feeding a lightweight 2-layer MLP.
+* **The Gated Semantic-Lexical Fusion Pipeline (Gated Hybrid):** Combines the dense semantic representations and sparse lexical features using a trainable gating node, dynamically balancing contextual understanding and vocabulary cues.
+
+---
+
+## 6. Experimental Setup & Optimization
 We resolved a major performance bottleneck during training. Running SBERT text tokenization inside the raw PyTorch/Keras loops created a massive CPU-GPU data transfer bottleneck. By performing text tokenization as a batched offline step before starting training on GPU, we achieved a **4x speedup** in epoch times. 
 
 All models were trained with a batch size of 128, Adam optimizer (learning rate: `1e-3`), and Early Stopping with a validation loss patience of 10.
 
 ---
 
-## 6. Evaluation and Results
+## 7. Evaluation and Results
 
-### 6.1 Overall Performance
+### 7.1 Overall Performance
 The student models trained on the fine-tuned teacher's soft targets (Variant B) consistently outperformed those trained on the original teacher targets (Variant A):
 
 | Model | Input Dimensions | Overall Test Accuracy | Overall F1-Score |
@@ -100,7 +143,7 @@ The student models trained on the fine-tuned teacher's soft targets (Variant B) 
 
 ---
 
-### 6.2 Source-Specific Generalization
+### 7.2 Source-Specific Generalization
 To evaluate real-world generalization, we sliced the test split results by dataset source:
 
 #### THEPIXEL42 Slice (28,055 samples)
@@ -130,7 +173,7 @@ To evaluate real-world generalization, we sliced the test split results by datas
 
 ---
 
-### 6.3 Latency Analysis
+### 7.3 Latency Analysis
 Inference speed was benchmarked on a single-core CPU:
 * **Transformer (Teacher):** ~10 - 20 ms/sample.
 * **Gated Hybrid (Variant B):** ~1.5 - 2.5 ms/sample (dominated by SBERT embedding generation).
@@ -138,11 +181,11 @@ Inference speed was benchmarked on a single-core CPU:
 
 ---
 
-### 6.4 Model Evaluation Curves
+### 7.4 Model Evaluation Curves
 
 To visualize the learning behavior and classification performance of our student models, we generate learning curves (Loss and MAE), ROC/Precision-Recall curves, and confusion matrices.
 
-#### 6.4.1 Distilled Lite (Variant B)
+#### 7.4.1 Distilled Lite (Variant B)
 
 * **Learning Curves:** Loss & Mean Absolute Error (MAE) over 100 training epochs.
 ![Distilled Lite Learning Curves](./learning_curve_lite.png)
@@ -156,7 +199,7 @@ To visualize the learning behavior and classification performance of our student
 * **SHAP Feature Importance:** Global feature contributions computed via SHAP (top 20 features).
 ![Distilled Lite SHAP Feature Importance](./xai_shap_lite.png)
 
-#### 6.4.2 Gated Hybrid (Variant B)
+#### 7.4.2 Gated Hybrid (Variant B)
 
 * **Learning Curves:** Loss & Mean Absolute Error (MAE) over 100 training epochs.
 ![Gated Hybrid Learning Curves](./learning_curve_gated.png)
@@ -172,7 +215,7 @@ To visualize the learning behavior and classification performance of our student
 
 ---
 
-### 6.5 SHAP Explainability Insights
+### 7.5 SHAP Explainability Insights
 
 Using post-hoc SHAP analysis, we evaluated the decision boundaries of our distilled student models:
 * **Distilled Lite (Variant B):** The model relies heavily on the engineered `crisis_flag` (SHAP value: 0.106) to flag acute distress, followed by the keyword `"depression"` and the NRCLex `trust` metric. Crucially, the clinical marker `sing_ratio` (first-person singular pronoun density) ranks as the 4th most important feature, validating that self-referential language is a key diagnostic anchor.
@@ -180,17 +223,17 @@ Using post-hoc SHAP analysis, we evaluated the decision boundaries of our distil
 
 ---
 
-## 7. Discussion: The Overfitting and Generalization Trade-Offs
+## 8. Discussion: The Overfitting and Generalization Trade-Offs
 
-### 7.1 Transformer Fine-Tuning Domain Collapse
+### 8.1 Transformer Fine-Tuning Domain Collapse
 In exploratory runs, unfreezing SBERT's transformer layers end-to-end (`Gated FT Hybrid`) achieved high local fidelity (80.62% on `bin_reddit1.csv`) but suffered from severe general-domain collapse, dropping to **69.16% accuracy** on the clean, grammatical `Shreya` dataset. Fine-tuning caused the transformer weights to overfit to domain-specific syntax errors, destroying its general linguistic representations. Keeping SBERT frozen (as in Gated Hybrid) preserved generalization.
 
-### 7.2 Generalization Superiority of Student Models
+### 8.2 Generalization Superiority of Student Models
 Relying on frozen SBERT embeddings and domain-invariant stylistic scales allowed student models to generalize exceptionally well. On the out-of-distribution `Ourafla` slice, **Gated Hybrid Variant B (92.39%)** and **Distilled Lite Variant B (90.46%)** both significantly outperformed the Original Teacher model (**85.12%**). This suggests that simpler architectures, when guided by soft-target distillation, focus on core diagnostic features rather than overfitting to source-platform writing styles.
 
 ---
 
-## 8. Conclusion
+## 9. Conclusion
 This project demonstrates that transformer-level domain knowledge can be successfully distilled into lightweight student architectures. 
 * The **Gated Hybrid (Variant B)** is our accuracy champion, capturing **95%** of the fine-tuned teacher's accuracy.
 * The **Distilled Lite (Variant B)** is our production champion, achieving **91.69%** accuracy at **0.36 ms/sample** CPU latency with zero transformer dependencies, proving highly viable for low-cost, real-time social media mental health screening.
