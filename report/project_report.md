@@ -203,10 +203,28 @@ The system is designed with a dual-model architecture to support different produ
 
 ---
 
-## 6. Experimental Setup & Optimization
-We resolved a major performance bottleneck during training. Running SBERT text tokenization inside the raw PyTorch/Keras loops created a massive CPU-GPU data transfer bottleneck. By performing text tokenization as a batched offline step before starting training on GPU, we achieved a **4x speedup** in epoch times. 
+## 6. Experimental Setup & Training Details
 
-All models were trained with a batch size of 128, Adam optimizer (learning rate: `1e-3`), and Early Stopping with a validation loss patience of 10.
+To ensure reproducibility, this section outlines the hardware environment, software stack, and hyperparameter configurations used to train the teacher and student models.
+
+### 6.1 Computational Infrastructure & Software Stack
+* **Hardware Stack:** Model training and evaluation were executed on an Apple Silicon platform, utilizing the Metal Performance Shaders (MPS) backend for GPU-accelerated tensor computations.
+* **Software Stack:** Built using Python with the following core framework configurations:
+  - **Deep Learning Frameworks:** `TensorFlow` (Keras API) for student models; `PyTorch` for teacher fine-tuning.
+  - **Transformers & NLP:** Hugging Face `transformers` for the BERT teacher model; `sentence-transformers` for SBERT feature extraction.
+  - **Feature Utilities:** `scikit-learn` for dataset splitting and metric calculation; `NRCLex` for emotion feature profiling.
+
+### 6.2 Model Training Hyperparameters
+To ensure a fair evaluation, the student models were trained under unified optimization parameters, while the teacher was trained under standard transformer fine-tuning parameters:
+
+| Parameter | Fine-Tuned BERT Teacher | Distilled Lite (Student 1) | Gated Hybrid (Student 2) |
+| :--- | :---: | :---: | :---: |
+| **Optimizer** | AdamW | Adam | Adam |
+| **Base Learning Rate** | $2 \times 10^{-5}$ | $1 \times 10^{-3}$ | $1 \times 10^{-3}$ |
+| **Batch Size** | 64 | 128 | 128 |
+| **Max Training Epochs** | 4 | 100 | 100 |
+| **Loss Function** | Categorical Cross-Entropy | Binary Cross-Entropy | Binary Cross-Entropy |
+| **Early Stopping** | None | Val Loss (Patience: 10) | Val Loss (Patience: 10) |
 
 ---
 
