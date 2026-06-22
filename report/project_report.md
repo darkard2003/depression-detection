@@ -46,7 +46,28 @@ The combined dataset contains **191,840 samples**. We implemented a **20% strati
 ## 4. Methodology
 Our distillation pipeline utilizes a domain-specific fine-tuned teacher and two distinct student architectures.
 
-![Machine Learning Knowledge Distillation Pipeline Diagram](./knowledge_distillation_pipeline.png)
+```mermaid
+graph TD
+    subgraph Stage 1: Teacher Fine-Tuning
+        A[Combined Dataset] --> B[Fine-Tune BERT Teacher]
+        B --> C[Fine-Tuned Teacher Model]
+    end
+
+    subgraph Stage 2: Soft Label Generation
+        A --> D[Teacher Inference Run]
+        C --> D
+        D --> E["Continuous Soft Targets: y_soft ∈ [0, 1]"]
+    end
+
+    subgraph Stage 3: Student Distillation
+        A --> F[Extract Student Features]
+        F --> G[Student Model Forward Pass]
+        G --> H["Student Predictions: y_pred"]
+        E --> I[Compute Binary Cross-Entropy Loss]
+        H --> I
+        I --> J[Gradient Optimization & Backpropagation]
+    end
+```
 
 ### 4.1 Teacher Model
 Our teacher model is based on `TRT1000/depression-detection-model` (a BERT-family transformer). We fine-tuned the model on the combined training set using PyTorch on Apple Silicon GPU (MPS) with a batch size of 64, achieving **97.11%** validation accuracy and **97.68%** test accuracy.
@@ -61,7 +82,34 @@ Designed for maximum speed, this Keras MLP requires **zero transformer embedding
 * **Features:** 5,000 TF-IDF unigrams/bigrams + 22 handcrafted scales (including pronoun self-focus, temporal tenses, negation ratios, absolute thinking markers, TextBlob sentiment, and NRCLex emotions).
 * **Architecture:** A 2-layer MLP (`Input(2000) -> Dense(128) -> Dropout(0.2) -> Dense(64) -> Dropout(0.2) -> Dense(1, Sigmoid)`).
 
-![Distilled Lite Model Pipeline Diagram](./lite_model_pipeline.png)
+```mermaid
+graph TD
+    A[Raw Text Post] --> B[Text Cleaning & Normalization]
+    
+    subgraph Feature Extraction & Scaling
+        B --> C[TF-IDF Vectorizer: 5,000 features]
+        B --> D[NRCLex Emotion Features: 10 counts]
+        B --> E[Handcrafted Stylistic Features: 12 metrics]
+        D --> F[NRCLex Scaler]
+        E --> F
+    end
+
+    C --> G[Concatenate Vectors: 5,022 dimensions]
+    F --> G
+    
+    G --> H[SelectKBest Chi-Square Dimensionality Reduction]
+    H --> I[Selected Feature Input: 2,000 dimensions]
+    
+    subgraph Keras MLP Student Architecture
+        I --> J[Dense Layer: 128 Units, ReLU]
+        J --> K[Dropout Layer: rate 0.2]
+        K --> L[Dense Layer: 64 Units, ReLU]
+        L --> M[Dropout Layer: rate 0.2]
+        M --> N[Output Dense: 1 Unit, Sigmoid]
+    end
+    
+    N --> O[Classification: Depression Probability]
+```
 
 ### 4.4 Student Model 2: Gated Hybrid
 Designed for maximum accuracy, this Keras model merges dense semantics and sparse keywords using a learned gating weight.
@@ -73,7 +121,42 @@ Designed for maximum accuracy, this Keras model merges dense semantics and spars
   * **Weighted Fusion:** Projects both branches to a common dimension of 64 and combines them: $\text{fused} = g \cdot \text{sbert\_proj} + (1 - g) \cdot \text{tfidf\_proj}$.
   * **Output Classifier:** Fused vector (64) $\rightarrow$ `Dense(1, Sigmoid)`.
 
-![Gated Hybrid Model Pipeline Diagram](./gated_model_pipeline.png)
+```mermaid
+graph TD
+    A[Raw Text Post] --> B[Text Preprocessing]
+    
+    subgraph Dual-Branch Feature Extraction
+        B --> C["SBERT Embeddings (all-MiniLM-L6-v2): 384 dimensions"]
+        B --> D[TF-IDF Vectorizer: 1,000 features]
+    end
+
+    subgraph Dual-Branch Projection
+        C --> E[Dense Projection: 128 Units, ReLU]
+        D --> F[Dense Projection: 256 Units, ReLU]
+    end
+    
+    subgraph Dynamic Gating Weight Calculation
+        E --> G[Concatenate Projections: 384 dimensions]
+        F --> G
+        G --> H[Dense Gating Node: Sigmoid]
+        H --> I["Gating Weight: g ∈ (0, 1)"]
+    end
+    
+    subgraph Weighted Fusion Layer
+        E --> J["SBERT Fusion Path: g * SBERT_proj"]
+        I --> J
+        F --> K["TF-IDF Fusion Path: (1 - g) * TFIDF_proj"]
+        I --> K
+        J --> L[Weighted Sum: Common 64-dimensional space]
+        K --> L
+    end
+    
+    subgraph Output Classification
+        L --> M[Dense Output Layer: 1 Unit, Sigmoid]
+    end
+    
+    M --> N[Final Prediction Probability]
+```
 
 ---
 
